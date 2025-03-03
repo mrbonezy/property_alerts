@@ -1,0 +1,21 @@
+{
+  "name": "property_alerts",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node dist/test.js",
+    "start": "npm run build && node dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Airbnb listing alerts via Telegram",
+  "dependencies": {
+    "@types/node": "^20.0.0",
+    "@upstash/redis": "^1.28.4",
+    "dotenv": "^16.4.7",
+    "playwright": "^1.42.1",
+    "typescript": "^5.0.0"
+  }
+}
