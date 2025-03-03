@@ -111,7 +111,7 @@ export class AirbnbScraper {
             const reviewCount = ratingMatch ? parseInt(ratingMatch[2], 10) : 0;
 
             return {
-              id: result.listing.id,
+              id: String(result.listing.id),
               url: `/rooms/${result.listing.id}`,
               price,
               currency,
