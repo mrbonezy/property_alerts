@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "website/**"
+      - ".github/**"
   workflow_dispatch: # Allow manual triggering
 
 jobs:
@@ -36,4 +37,4 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: website/dist
-          branch: gh-pages 
+          branch: gh-pages
