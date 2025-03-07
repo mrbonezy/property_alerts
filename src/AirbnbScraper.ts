@@ -130,7 +130,7 @@ export class AirbnbScraper {
       console.log(`Found ${listings.length} listings`);
 
       // Add a delay before closing
-      await page.waitForTimeout(5000);
+      // await page.waitForTimeout(5000);
 
       // Build the filtered URLs with the original search parameters
       return listings.map((listing: AirbnbListing) => {

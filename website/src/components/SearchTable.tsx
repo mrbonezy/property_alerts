@@ -170,119 +170,121 @@ const SearchTable = () => {
           No search alerts configured yet.
         </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Location</TableHead>
-              <TableHead>Check-in</TableHead>
-              <TableHead>Check-out</TableHead>
-              <TableHead>Nights</TableHead>
-              <TableHead>Guests</TableHead>
-              <TableHead>Price Range</TableHead>
-              <TableHead>Created On</TableHead>
-              <TableHead>Last Fetched</TableHead>
-              <TableHead className="text-right">Properties</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {searchData.map((search, index) => {
-              const parsedUrl = parseSearchUrl(search.searchUrl);
-              return (
-                <TableRow key={index}>
-                  <TableCell className="font-medium">
-                    {parsedUrl.location}
-                  </TableCell>
-                  <TableCell>
-                    {parsedUrl.checkin
-                      ? formatDateFromString(parsedUrl.checkin)
-                      : "Not specified"}
-                  </TableCell>
-                  <TableCell>
-                    {parsedUrl.checkout
-                      ? formatDateFromString(parsedUrl.checkout)
-                      : "Not specified"}
-                  </TableCell>
-                  <TableCell>
-                    {parsedUrl.numNights > 0 ? parsedUrl.numNights : "—"}
-                  </TableCell>
-                  <TableCell>
-                    {`${parsedUrl.adults} adults${
-                      parseInt(parsedUrl.children) > 0
-                        ? `, ${parsedUrl.children} children`
-                        : ""
-                    }`}
-                  </TableCell>
-                  <TableCell>
-                    {parsedUrl.priceMin && parsedUrl.priceMax
-                      ? `${parsedUrl.currency || ""}${parsedUrl.priceMin} - ${
-                          parsedUrl.currency || ""
-                        }${parsedUrl.priceMax}`
-                      : parsedUrl.priceMin
-                      ? `From ${parsedUrl.currency || ""}${parsedUrl.priceMin}`
-                      : parsedUrl.priceMax
-                      ? `Up to ${parsedUrl.currency || ""}${parsedUrl.priceMax}`
-                      : "Any price"}
-                  </TableCell>
-                  <TableCell>{formatDate(search.createdAt)}</TableCell>
-                  <TableCell>{formatDate(search.lastFetched)}</TableCell>
-                  <TableCell className="text-right">
-                    {search.propertyCount}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2 justify-end">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => window.open(search.searchUrl, "_blank")}
-                        title="Open search in new tab"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
+        <div className="overflow-x-auto">
+          <Table className="w-full table-auto">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="whitespace-nowrap">Location</TableHead>
+                <TableHead className="whitespace-nowrap">Check-in</TableHead>
+                <TableHead className="whitespace-nowrap">Check-out</TableHead>
+                <TableHead className="whitespace-nowrap">Nights</TableHead>
+                <TableHead className="whitespace-nowrap">Guests</TableHead>
+                <TableHead className="whitespace-nowrap">Price Range</TableHead>
+                <TableHead className="whitespace-nowrap">Created On</TableHead>
+                <TableHead className="whitespace-nowrap">Last Fetched</TableHead>
+                <TableHead className="whitespace-nowrap text-right">Properties</TableHead>
+                <TableHead className="whitespace-nowrap w-[100px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {searchData.map((search, index) => {
+                const parsedUrl = parseSearchUrl(search.searchUrl);
+                return (
+                  <TableRow key={index}>
+                    <TableCell className="font-medium truncate max-w-[100px]" title={parsedUrl.location}>
+                      {parsedUrl.location}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {parsedUrl.checkin
+                        ? formatDateFromString(parsedUrl.checkin)
+                        : "Not specified"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {parsedUrl.checkout
+                        ? formatDateFromString(parsedUrl.checkout)
+                        : "Not specified"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {parsedUrl.numNights > 0 ? parsedUrl.numNights : "—"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {`${parsedUrl.adults} adults${
+                        parseInt(parsedUrl.children) > 0
+                          ? `, ${parsedUrl.children} children`
+                          : ""
+                      }`}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {parsedUrl.priceMin && parsedUrl.priceMax
+                        ? `${parsedUrl.currency || ""}${parsedUrl.priceMin} - ${
+                            parsedUrl.currency || ""
+                          }${parsedUrl.priceMax}`
+                        : parsedUrl.priceMin
+                        ? `From ${parsedUrl.currency || ""}${parsedUrl.priceMin}`
+                        : parsedUrl.priceMax
+                        ? `Up to ${parsedUrl.currency || ""}${parsedUrl.priceMax}`
+                        : "Any price"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{formatDate(search.createdAt)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatDate(search.lastFetched)}</TableCell>
+                    <TableCell className="whitespace-nowrap text-right">
+                      {search.propertyCount}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <div className="flex space-x-2 justify-end">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => window.open(search.searchUrl, "_blank")}
+                          title="Open search in new tab"
                         >
-                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                          <polyline points="15 3 21 3 21 9"></polyline>
-                          <line x1="10" y1="14" x2="21" y2="3"></line>
-                        </svg>
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleRemoveSearch(search.searchUrl)}
-                        title="Remove search"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                          </svg>
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleRemoveSearch(search.searchUrl)}
+                          title="Remove search"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
                         >
-                          <path d="M3 6h18"></path>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
-                          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          </svg>
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
       <div className="flex justify-end">
