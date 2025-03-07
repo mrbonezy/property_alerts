@@ -7,6 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { useRedis } from "@/context/RedisContext";
 import { SearchMetadata } from "@/services/RedisService";
 import { useEffect, useState } from "react";
@@ -30,7 +31,19 @@ const SearchTable = () => {
     setError("");
     try {
       const searchesMetadata = await redisService.getAllSearchesMetadata();
-      setSearchData(searchesMetadata);
+      
+      // Sort searches by check-in date (if available)
+      const sortedData = [...searchesMetadata].sort((a, b) => {
+        const aInfo = parseSearchUrl(a.searchUrl);
+        const bInfo = parseSearchUrl(b.searchUrl);
+        
+        if (!aInfo.checkin) return 1;  // No check-in date goes to the end
+        if (!bInfo.checkin) return -1; // No check-in date goes to the end
+        
+        return new Date(aInfo.checkin).getTime() - new Date(bInfo.checkin).getTime();
+      });
+      
+      setSearchData(sortedData);
     } catch (err) {
       console.error("Failed to fetch search data:", err);
       setError("Failed to load search data");
@@ -43,18 +56,85 @@ const SearchTable = () => {
     if (!date) return "Never";
     return date.toLocaleString();
   };
+  
+  const formatDateFromString = (dateStr: string) => {
+    if (!dateStr) return "";
+    try {
+      return new Date(dateStr).toLocaleDateString(navigator.language || 'en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return dateStr;
+    }
+  };
 
-  const getShortUrl = (url: string) => {
+  const parseSearchUrl = (url: string) => {
     try {
       const urlObj = new URL(url);
-      const pathname =
-        urlObj.pathname.length > 20
-          ? urlObj.pathname.substring(0, 20) + "..."
-          : urlObj.pathname;
-      return `${urlObj.hostname}${pathname}`;
+      const params = new URLSearchParams(urlObj.search);
+      
+      // Extract location name from URL path
+      const locationMatch = urlObj.pathname.match(/\/s\/([^/]+)/);
+      const location = locationMatch
+        ? decodeURIComponent(locationMatch[1].replace(/-/g, " "))
+        : "Unknown location";
+      
+      // Parse search parameters
+      return {
+        location: location,
+        adults: params.get("adults") || "0",
+        children: params.get("children") || "0",
+        checkin: params.get("checkin") || "",
+        checkout: params.get("checkout") || "",
+        priceMin: params.get("price_min") || "",
+        priceMax: params.get("price_max") || "",
+        currency: params.get("currency") || "",
+        numNights: calculateNights(params.get("checkin"), params.get("checkout")),
+        fullUrl: url
+      };
     } catch (error) {
       console.error("Error parsing URL:", error);
-      return url;
+      return {
+        location: "Invalid URL",
+        adults: "0",
+        children: "0",
+        checkin: "",
+        checkout: "",
+        priceMin: "",
+        priceMax: "",
+        currency: "",
+        numNights: 0,
+        fullUrl: url
+      };
+    }
+  };
+
+  const calculateNights = (checkin: string | null, checkout: string | null) => {
+    if (!checkin || !checkout) return 0;
+    
+    try {
+      const startDate = new Date(checkin);
+      const endDate = new Date(checkout);
+      const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays;
+    } catch {
+      return 0;
+    }
+  };
+
+  const handleRemoveSearch = async (searchUrl: string) => {
+    if (!redisService) return;
+    
+    try {
+      await redisService.removeOutstandingSearch(searchUrl);
+      fetchSearchData();
+    } catch (err) {
+      console.error("Failed to remove search:", err);
+      setError("Failed to remove search alert");
     }
   };
 
@@ -87,45 +167,98 @@ const SearchTable = () => {
           </TableCaption>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[40%]">Search URL</TableHead>
+              <TableHead>Location</TableHead>
+              <TableHead>Check-in</TableHead>
+              <TableHead>Check-out</TableHead>
+              <TableHead>Nights</TableHead>
+              <TableHead>Guests</TableHead>
+              <TableHead>Price Range</TableHead>
               <TableHead>Created On</TableHead>
               <TableHead>Last Fetched</TableHead>
-              <TableHead className="text-right">Properties Found</TableHead>
+              <TableHead className="text-right">Properties</TableHead>
+              <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {searchData.map((search, index) => (
-              <TableRow key={index}>
-                <TableCell className="font-medium">
-                  <a
-                    href={search.searchUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                    title={search.searchUrl}
-                  >
-                    {getShortUrl(search.searchUrl)}
-                  </a>
-                </TableCell>
-                <TableCell>{formatDate(search.createdAt)}</TableCell>
-                <TableCell>{formatDate(search.lastFetched)}</TableCell>
-                <TableCell className="text-right">
-                  {search.propertyCount}
-                </TableCell>
-              </TableRow>
-            ))}
+            {searchData.map((search, index) => {
+              const parsedUrl = parseSearchUrl(search.searchUrl);
+              return (
+                <TableRow key={index}>
+                  <TableCell className="font-medium">
+                    {parsedUrl.location}
+                  </TableCell>
+                  <TableCell>
+                    {parsedUrl.checkin ? 
+                      formatDateFromString(parsedUrl.checkin) : 
+                      "Not specified"}
+                  </TableCell>
+                  <TableCell>
+                    {parsedUrl.checkout ? 
+                      formatDateFromString(parsedUrl.checkout) : 
+                      "Not specified"}
+                  </TableCell>
+                  <TableCell>{parsedUrl.numNights > 0 ? parsedUrl.numNights : "—"}</TableCell>
+                  <TableCell>
+                    {`${parsedUrl.adults} adults${parseInt(parsedUrl.children) > 0 ? `, ${parsedUrl.children} children` : ''}`}
+                  </TableCell>
+                  <TableCell>
+                    {parsedUrl.priceMin && parsedUrl.priceMax ? 
+                      `${parsedUrl.currency || ''}${parsedUrl.priceMin} - ${parsedUrl.currency || ''}${parsedUrl.priceMax}` : 
+                      parsedUrl.priceMin ? 
+                      `From ${parsedUrl.currency || ''}${parsedUrl.priceMin}` : 
+                      parsedUrl.priceMax ? 
+                      `Up to ${parsedUrl.currency || ''}${parsedUrl.priceMax}` : 
+                      "Any price"}
+                  </TableCell>
+                  <TableCell>{formatDate(search.createdAt)}</TableCell>
+                  <TableCell>{formatDate(search.lastFetched)}</TableCell>
+                  <TableCell className="text-right">
+                    {search.propertyCount}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2 justify-end">
+                      <Button 
+                        size="icon" 
+                        variant="ghost"
+                        onClick={() => window.open(search.searchUrl, '_blank')}
+                        title="Open search in new tab"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                          <polyline points="15 3 21 3 21 9"></polyline>
+                          <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                      </Button>
+                      <Button 
+                        size="icon" 
+                        variant="ghost"
+                        onClick={() => handleRemoveSearch(search.searchUrl)}
+                        title="Remove search"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 6h18"></path>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       )}
 
       <div className="flex justify-end">
-        <button
+        <Button
           onClick={fetchSearchData}
-          className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/90 disabled:opacity-50"
+          variant="secondary"
           disabled={loading}
         >
           {loading ? "Refreshing..." : "Refresh Data"}
-        </button>
+        </Button>
       </div>
     </div>
   );

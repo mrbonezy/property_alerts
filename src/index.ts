@@ -2,6 +2,8 @@ import { config } from "dotenv";
 import { AirbnbScraper } from "./AirbnbScraper";
 import { ListingTracker } from "./ListingTracker";
 import { TelegramNotifier } from "./TelegramNotifier";
+import { AirbnbListing } from "./types";
+import { dummyNotification } from "./dummy-notification";
 
 // Load environment variables from .env file
 config();
@@ -37,23 +39,18 @@ async function main() {
       chatId: process.env.TGCHAT_ID!,
     });
 
-    await notifier.notifyNewListings(
-      [
-        {
-          id: "1234567890",
-          url: "https://www.airbnb.co.uk/rooms/1234567890",
-          currency: "£",
-          price: 100,
-          rating: 4.5,
-          reviewCount: 100,
-        },
-      ],
-      "https://www.airbnb.co.uk/s/Edinburgh/homes"
-    );
-    return;
+    // For testing purposes - remove in production
+    if (process.env.TEST_NOTIFICATION === "true") {
+      await notifier.notifyNewListings(dummyNotification);
+      return;
+    }
 
     const outstandingSearches = await tracker.getOutstandingSearches();
 
+    // Map to collect all new listings by search URL
+    const allNewListings = new Map<string, AirbnbListing[]>();
+
+    // Process each search
     for (const searchUrl of outstandingSearches) {
       console.log("Running search:", searchUrl);
       // First get all listings
@@ -76,8 +73,9 @@ async function main() {
           );
           // Send initial notification to Telegram if configured
           if (process.env.NOTIFY_ON_FIRST_RUN === "true") {
-            await notifier.notifyNewListings(allListings, searchUrl);
-            console.log("Sent initial listings notification to Telegram.");
+            // Store listings for aggregated notification
+            allNewListings.set(searchUrl, allListings);
+            console.log("Added initial listings for aggregated notification.");
           } else {
             console.log(
               "Skipping initial notification (NOTIFY_ON_FIRST_RUN not set to 'true')"
@@ -97,20 +95,24 @@ async function main() {
             );
           });
 
-          // Send notification for new listings to Telegram
-          const success = await notifier.notifyNewListings(
-            newListings,
-            searchUrl
-          );
-          if (success) {
-            console.log(
-              `Telegram notification sent successfully for ${newListings.length} new listings.`
-            );
-          } else {
-            console.error("Failed to send Telegram notification.");
-          }
+          // Store new listings for aggregated notification
+          allNewListings.set(searchUrl, newListings);
         }
       }
+    }
+
+    // Send aggregated notification if there are any new listings
+    if (allNewListings.size > 0) {
+      const success = await notifier.notifyAggregated(allNewListings);
+      if (success) {
+        console.log(
+          `Aggregated Telegram notification sent successfully for ${allNewListings.size} searches.`
+        );
+      } else {
+        console.error("Failed to send aggregated Telegram notification.");
+      }
+    } else {
+      console.log("No new listings found across all searches.");
     }
   } catch (error) {
     console.error("Error:", error);

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useRedis } from '@/context/RedisContext';
 import { RedisConfig } from '@/types';
+import { Button } from '@/components/ui/button';
 
 const ConfigForm = () => {
   const { isConfigured, isConnected, configure, clearConfig } = useRedis();
@@ -37,18 +38,19 @@ const ConfigForm = () => {
 
   if (isConfigured && isConnected) {
     return (
-      <div className="flex flex-col items-center">
-        <h2 className="text-2xl font-semibold mb-4">Connection Status</h2>
-        <div className="flex items-center mb-4">
-          <span className="text-green-500 text-xl mr-2">●</span> 
-          <span>Connected to Upstash Redis</span>
-        </div>
-        <button 
+      <div>
+        <h2 className="text-2xl font-semibold mb-4">Property Alerts Configuration</h2>
+        <p className="text-muted-foreground mb-4">
+          You are connected to Upstash Redis. You can disconnect if you need to change your configuration.
+        </p>
+        
+        <Button 
           onClick={handleDisconnect} 
-          className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/90"
+          variant="outline"
+          size="sm"
         >
           Disconnect
-        </button>
+        </Button>
       </div>
     );
   }
@@ -97,13 +99,14 @@ const ConfigForm = () => {
           />
         </div>
         
-        <button 
+        <Button 
           type="submit" 
           disabled={isSubmitting || !url || !token}
-          className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+          variant="default"
+          className="disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSubmitting ? 'Connecting...' : 'Connect'}
-        </button>
+        </Button>
       </form>
     </div>
   );
