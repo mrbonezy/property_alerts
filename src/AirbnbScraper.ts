@@ -113,6 +113,8 @@ export class AirbnbScraper {
             return {
               id: String(result.listing.id),
               url: `/rooms/${result.listing.id}`,
+              name: result.listing.name || "",
+              title: result.listing.title || "",
               price,
               currency,
               rating,

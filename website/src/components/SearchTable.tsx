@@ -54,6 +54,7 @@ const SearchTable = () => {
     }
   };
 
+  // TODO: distinguish between never and error
   const formatDate = (date: Date | null) => {
     if (!date) return "Never";
     return date.toLocaleString();

@@ -5,6 +5,8 @@ export interface AirbnbListing {
   currency: string;
   rating: number;
   reviewCount: number;
+  name: string;
+  title: string;
 }
 
 export interface SearchParams {
@@ -14,4 +16,4 @@ export interface SearchParams {
 export interface RedisConfig {
   url: string;
   token: string;
-} 
+}

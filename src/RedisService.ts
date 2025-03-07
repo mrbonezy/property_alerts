@@ -67,20 +67,23 @@ export class RedisService {
     }
   }
 
-  async getNewListings(
-    searchUrl: string,
-    currentIds: string[]
-  ): Promise<{ isFirstSearch: boolean; newIds: string[] }> {
+  async markFailure(searchUrl: string) {
+    await this.redis.hset(this.getFirstRunKey(searchUrl), {
+      lastScanMs: 0, // TODO: support null
+    });
+  }
+
+  async getListingsIds(
+    searchUrl: string
+  ): Promise<{ isFirstSearch: boolean; ids: string[] }> {
     const [isFirst, storedIds] = await Promise.all([
       this.isFirstSearch(searchUrl),
       this.getStoredIds(searchUrl),
     ]);
 
-    const newIds = currentIds.filter((id) => !storedIds.includes(id));
-
     return {
       isFirstSearch: isFirst,
-      newIds: isFirst ? currentIds : newIds,
+      ids: storedIds,
     };
   }
 

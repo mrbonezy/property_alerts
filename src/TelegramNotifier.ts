@@ -120,24 +120,18 @@ export class TelegramNotifier {
     }
 
     try {
-      // Send a separate message for each search URL
+      // Send a separate message for each listing
       for (const alert of alerts) {
         const searchInfo = this.parseSearchUrl(alert.searchUrl);
 
-        // Create message with detailed header
-        let message = `🏠 <b>${alert.listings.length} New ${
-          alert.listings.length === 1 ? "Listing" : "Listings"
-        } Found in ${searchInfo.location}</b>\n\n`;
+        // Process each listing individually
+        for (const listing of alert.listings) {
+          // Create message for this individual listing
+          let message = `🏠 <b>New Property in ${searchInfo.location}</b>\n\n`;
 
-        message += `<b>Search Details:</b>\n`;
-        message += `📅 Dates: ${searchInfo.dates}\n`;
-        message += `👥 Guests: ${searchInfo.guests}\n`;
-        message += `💰 Price Range: ${searchInfo.priceRange}\n`;
-        message += `🔍 <a href="${alert.searchUrl}">View all results</a>\n\n`;
-
-        // Add each listing to the message
-        alert.listings.forEach((listing, index) => {
-          message += `<b>${index + 1}. Property Listing</b>\n`;
+          // Add property details
+          message += `<b>${listing.name || ""}</b>\n`;
+          message += `<b>${listing.title || "Property Listing"}</b>\n`;
           message += `💰 ${listing.currency}${listing.price}`;
 
           if (listing.rating > 0) {
@@ -148,11 +142,19 @@ export class TelegramNotifier {
             message += ` - No ratings yet`;
           }
 
-          message += `\n${listing.url}\n\n`;
-        });
+          message += `\n\n🔗 <a href="${listing.url}">View listing</a>\n`;
+          message += `🔍 <a href="${alert.searchUrl}">View all results</a>\n\n`;
 
-        // Send message for this search URL
-        await this.sendMessage(message);
+          // Add search details at the bottom
+          message += `<b>Search Details:</b>\n`;
+          message += `📅 Dates: ${searchInfo.dates}\n`;
+          message += `👥 Guests: ${searchInfo.guests}\n`;
+          message += `💰 Price Range: ${searchInfo.priceRange}\n`;
+          message += `🆔 Listing ID: ${listing.id}`;
+
+          // Send message for this listing
+          await this.sendMessage(message);
+        }
       }
 
       return true;
@@ -205,7 +207,8 @@ export class TelegramNotifier {
 
         // Add each listing for this search
         listings.forEach((listing, index) => {
-          message += `  ${index + 1}. <b>Property Listing</b>\n`;
+          message += `  ${index + 1}. <b>${listing.name || ""}</b>\n`;
+          message += `  <b>${listing.title || "Property Listing"}</b>\n`;
           message += `  💰 ${listing.currency}${listing.price}`;
 
           if (listing.rating > 0) {
@@ -230,6 +233,68 @@ export class TelegramNotifier {
       return await this.sendMessage(message);
     } catch (error) {
       console.error("Error creating aggregated notification message:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Send individual notifications for each new property
+   * @param alerts Array of search URLs and their new listings
+   * @returns Promise that resolves to true if all notifications were sent successfully
+   */
+  async notifyIndividualListings(
+    alerts: { searchUrl: string; listings: AirbnbListing[] }[]
+  ): Promise<boolean> {
+    if (alerts.length === 0) {
+      return true;
+    }
+
+    try {
+      let success = true;
+
+      // Process each search URL and its listings
+      for (const alert of alerts) {
+        const searchInfo = this.parseSearchUrl(alert.searchUrl);
+
+        // Send a separate message for each listing
+        for (const listing of alert.listings) {
+          // Create message for this individual listing
+          let message = `🏠 <b>New Property in ${searchInfo.location}</b>\n\n`;
+
+          // Add property details
+          message += `<b>${listing.name || ""}</b>\n`;
+          message += `<b>${listing.title || "Property Listing"}</b>\n`;
+          message += `💰 ${listing.currency}${listing.price}`;
+
+          if (listing.rating > 0) {
+            message += ` - ⭐${listing.rating.toFixed(1)} (${
+              listing.reviewCount
+            } ${listing.reviewCount === 1 ? "review" : "reviews"})`;
+          } else {
+            message += ` - No ratings yet`;
+          }
+
+          message += `\n\n🔗 <a href="${listing.url}">View listing</a>\n`;
+          message += `🔍 <a href="${alert.searchUrl}">View all results</a>\n\n`;
+
+          // Add search details at the bottom
+          message += `<b>Search Details:</b>\n`;
+          message += `📅 Dates: ${searchInfo.dates}\n`;
+          message += `👥 Guests: ${searchInfo.guests}\n`;
+          message += `💰 Price Range: ${searchInfo.priceRange}\n`;
+          message += `🆔 Listing ID: ${listing.id}`;
+
+          // Send message for this listing
+          const sent = await this.sendMessage(message);
+          if (!sent) {
+            success = false;
+          }
+        }
+      }
+
+      return success;
+    } catch (error) {
+      console.error("Error sending individual listing notifications:", error);
       return false;
     }
   }

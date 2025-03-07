@@ -28,6 +28,8 @@ async function main() {
   try {
     validateEnv();
 
+    console.log("Starting...");
+
     // Initialize services
     const scraper = new AirbnbScraper();
     const tracker = new ListingTracker({
@@ -51,59 +53,76 @@ async function main() {
     const allNewListings = new Map<string, AirbnbListing[]>();
 
     // Process each search
-    for (const searchUrl of outstandingSearches) {
+    for (const [i, searchUrl] of outstandingSearches.entries()) {
       console.log("Running search:", searchUrl);
-      // First get all listings
-      const allListings = await scraper.getListings({ url: searchUrl });
-      console.log("All listings found:", allListings.length);
+      try {
+        // First get all listings
+        const allListings = await scraper.getListings({ url: searchUrl });
+        console.log("All listings found:", allListings.length);
 
-      // Then find new ones
-      const { listings: newListings, isFirstSearch } =
-        await tracker.findNewListings(searchUrl, allListings);
+        // Then find new ones
+        const { listings: newListings, isFirstSearch } =
+          await tracker.updateNewListings(searchUrl, allListings);
 
-      if (isFirstSearch) {
-        console.log("First time running this search - establishing baseline.");
-        if (allListings.length === 0) {
+        if (isFirstSearch) {
           console.log(
-            "No listings found in first search, but we'll track future additions."
+            "First time running this search - establishing baseline."
           );
-        } else {
-          console.log(
-            `Found ${allListings.length} initial listings. Future runs will show new listings only.`
-          );
-          // Send initial notification to Telegram if configured
-          if (process.env.NOTIFY_ON_FIRST_RUN === "true") {
-            // Store listings for aggregated notification
-            allNewListings.set(searchUrl, allListings);
-            console.log("Added initial listings for aggregated notification.");
+          if (allListings.length === 0) {
+            console.log(
+              "No listings found in first search, but we'll track future additions."
+            );
           } else {
             console.log(
-              "Skipping initial notification (NOTIFY_ON_FIRST_RUN not set to 'true')"
+              `Found ${allListings.length} initial listings. Future runs will show new listings only.`
             );
+            // Send initial notification to Telegram if configured
+            if (process.env.NOTIFY_ON_FIRST_RUN === "true") {
+              // Store listings for aggregated notification
+              allNewListings.set(searchUrl, allListings);
+              console.log(
+                "Added initial listings for aggregated notification."
+              );
+            } else {
+              console.log(
+                "Skipping initial notification (NOTIFY_ON_FIRST_RUN not set to 'true')"
+              );
+            }
+          }
+        } else {
+          console.log(
+            `Found ${newListings.length} new listings since last check.`
+          );
+
+          if (newListings.length > 0) {
+            console.log("New listings details:");
+            newListings.forEach((listing) => {
+              console.log(
+                `- ${listing.url} (${listing.currency}${listing.price}) - Rating: ${listing.rating} (${listing.reviewCount} reviews)`
+              );
+            });
+
+            // Store new listings for aggregated notification
+            allNewListings.set(searchUrl, newListings);
           }
         }
-      } else {
-        console.log(
-          `Found ${newListings.length} new listings since last check.`
-        );
-
-        if (newListings.length > 0) {
-          console.log("New listings details:");
-          newListings.forEach((listing) => {
-            console.log(
-              `- ${listing.url} (${listing.currency}${listing.price}) - Rating: ${listing.rating} (${listing.reviewCount} reviews)`
-            );
-          });
-
-          // Store new listings for aggregated notification
-          allNewListings.set(searchUrl, newListings);
-        }
+      } catch (error) {
+        console.error(`Error processing search URL: ${searchUrl}`, error);
+        // Set last fetched timestamp to 0 for failed URLs
+        await tracker.markFailure(searchUrl);
+        console.log(`Marked ${searchUrl} with timestamp 0 due to failure`);
       }
     }
 
     // Send aggregated notification if there are any new listings
     if (allNewListings.size > 0) {
-      const success = await notifier.notifyAggregated(allNewListings);
+      // TODO refac
+      const success = await notifier.notifyNewListings(
+        Array.from(allNewListings.entries()).map(([searchUrl, listings]) => ({
+          searchUrl,
+          listings,
+        }))
+      );
       if (success) {
         console.log(
           `Aggregated Telegram notification sent successfully for ${allNewListings.size} searches.`
@@ -120,4 +139,6 @@ async function main() {
   }
 }
 
-main();
+void (async () => {
+  await main();
+})();

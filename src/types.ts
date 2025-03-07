@@ -5,6 +5,8 @@ export interface AirbnbListing {
   currency: string;
   rating: number;
   reviewCount: number;
+  name: string;
+  title: string;
 }
 
 export interface SearchParams {

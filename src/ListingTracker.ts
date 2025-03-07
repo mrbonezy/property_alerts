@@ -13,24 +13,27 @@ export class ListingTracker {
     this.redis = new RedisService(redisConfig.url, redisConfig.token);
   }
 
-  async findNewListings(
+  async updateNewListings(
     searchUrl: string,
     listings: AirbnbListing[]
   ): Promise<TrackingResult> {
-    const foundIds = listings.map((listing) => listing.id);
-    const { isFirstSearch, newIds } = await this.redis.getNewListings(
-      searchUrl,
-      foundIds
-    );
+    const newlyFoundIds = listings.map((listing) => listing.id);
+    const { isFirstSearch, ids } = await this.redis.getListingsIds(searchUrl);
+
+    const newIds = newlyFoundIds.filter((id) => !ids.includes(id));
 
     // Always update stored IDs, even if no listings found
     // This marks the search as "seen" for future comparisons
-    await this.redis.updateStoredIds(searchUrl, foundIds);
+    await this.redis.updateStoredIds(searchUrl, newlyFoundIds);
 
     return {
       listings: listings.filter((listing) => newIds.includes(listing.id)),
       isFirstSearch,
     };
+  }
+
+  async markFailure(searchUrl: string) {
+    await this.redis.markFailure(searchUrl);
   }
 
   async addOutstandingSearch(searchUrl: string) {
