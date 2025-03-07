@@ -31,18 +31,20 @@ const SearchTable = () => {
     setError("");
     try {
       const searchesMetadata = await redisService.getAllSearchesMetadata();
-      
+
       // Sort searches by check-in date (if available)
       const sortedData = [...searchesMetadata].sort((a, b) => {
         const aInfo = parseSearchUrl(a.searchUrl);
         const bInfo = parseSearchUrl(b.searchUrl);
-        
-        if (!aInfo.checkin) return 1;  // No check-in date goes to the end
+
+        if (!aInfo.checkin) return 1; // No check-in date goes to the end
         if (!bInfo.checkin) return -1; // No check-in date goes to the end
-        
-        return new Date(aInfo.checkin).getTime() - new Date(bInfo.checkin).getTime();
+
+        return (
+          new Date(aInfo.checkin).getTime() - new Date(bInfo.checkin).getTime()
+        );
       });
-      
+
       setSearchData(sortedData);
     } catch (err) {
       console.error("Failed to fetch search data:", err);
@@ -56,15 +58,18 @@ const SearchTable = () => {
     if (!date) return "Never";
     return date.toLocaleString();
   };
-  
+
   const formatDateFromString = (dateStr: string) => {
     if (!dateStr) return "";
     try {
-      return new Date(dateStr).toLocaleDateString(navigator.language || 'en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
+      return new Date(dateStr).toLocaleDateString(
+        navigator.language || "en-US",
+        {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        }
+      );
     } catch (error) {
       console.error("Error formatting date:", error);
       return dateStr;
@@ -75,13 +80,13 @@ const SearchTable = () => {
     try {
       const urlObj = new URL(url);
       const params = new URLSearchParams(urlObj.search);
-      
+
       // Extract location name from URL path
       const locationMatch = urlObj.pathname.match(/\/s\/([^/]+)/);
       const location = locationMatch
         ? decodeURIComponent(locationMatch[1].replace(/-/g, " "))
         : "Unknown location";
-      
+
       // Parse search parameters
       return {
         location: location,
@@ -92,8 +97,11 @@ const SearchTable = () => {
         priceMin: params.get("price_min") || "",
         priceMax: params.get("price_max") || "",
         currency: params.get("currency") || "",
-        numNights: calculateNights(params.get("checkin"), params.get("checkout")),
-        fullUrl: url
+        numNights: calculateNights(
+          params.get("checkin"),
+          params.get("checkout")
+        ),
+        fullUrl: url,
       };
     } catch (error) {
       console.error("Error parsing URL:", error);
@@ -107,14 +115,14 @@ const SearchTable = () => {
         priceMax: "",
         currency: "",
         numNights: 0,
-        fullUrl: url
+        fullUrl: url,
       };
     }
   };
 
   const calculateNights = (checkin: string | null, checkout: string | null) => {
     if (!checkin || !checkout) return 0;
-    
+
     try {
       const startDate = new Date(checkin);
       const endDate = new Date(checkout);
@@ -128,7 +136,7 @@ const SearchTable = () => {
 
   const handleRemoveSearch = async (searchUrl: string) => {
     if (!redisService) return;
-    
+
     try {
       await redisService.removeOutstandingSearch(searchUrl);
       fetchSearchData();
@@ -162,9 +170,6 @@ const SearchTable = () => {
         </div>
       ) : (
         <Table>
-          <TableCaption>
-            Property search alerts and their statistics
-          </TableCaption>
           <TableHeader>
             <TableRow>
               <TableHead>Location</TableHead>
@@ -188,27 +193,35 @@ const SearchTable = () => {
                     {parsedUrl.location}
                   </TableCell>
                   <TableCell>
-                    {parsedUrl.checkin ? 
-                      formatDateFromString(parsedUrl.checkin) : 
-                      "Not specified"}
+                    {parsedUrl.checkin
+                      ? formatDateFromString(parsedUrl.checkin)
+                      : "Not specified"}
                   </TableCell>
                   <TableCell>
-                    {parsedUrl.checkout ? 
-                      formatDateFromString(parsedUrl.checkout) : 
-                      "Not specified"}
-                  </TableCell>
-                  <TableCell>{parsedUrl.numNights > 0 ? parsedUrl.numNights : "—"}</TableCell>
-                  <TableCell>
-                    {`${parsedUrl.adults} adults${parseInt(parsedUrl.children) > 0 ? `, ${parsedUrl.children} children` : ''}`}
+                    {parsedUrl.checkout
+                      ? formatDateFromString(parsedUrl.checkout)
+                      : "Not specified"}
                   </TableCell>
                   <TableCell>
-                    {parsedUrl.priceMin && parsedUrl.priceMax ? 
-                      `${parsedUrl.currency || ''}${parsedUrl.priceMin} - ${parsedUrl.currency || ''}${parsedUrl.priceMax}` : 
-                      parsedUrl.priceMin ? 
-                      `From ${parsedUrl.currency || ''}${parsedUrl.priceMin}` : 
-                      parsedUrl.priceMax ? 
-                      `Up to ${parsedUrl.currency || ''}${parsedUrl.priceMax}` : 
-                      "Any price"}
+                    {parsedUrl.numNights > 0 ? parsedUrl.numNights : "—"}
+                  </TableCell>
+                  <TableCell>
+                    {`${parsedUrl.adults} adults${
+                      parseInt(parsedUrl.children) > 0
+                        ? `, ${parsedUrl.children} children`
+                        : ""
+                    }`}
+                  </TableCell>
+                  <TableCell>
+                    {parsedUrl.priceMin && parsedUrl.priceMax
+                      ? `${parsedUrl.currency || ""}${parsedUrl.priceMin} - ${
+                          parsedUrl.currency || ""
+                        }${parsedUrl.priceMax}`
+                      : parsedUrl.priceMin
+                      ? `From ${parsedUrl.currency || ""}${parsedUrl.priceMin}`
+                      : parsedUrl.priceMax
+                      ? `Up to ${parsedUrl.currency || ""}${parsedUrl.priceMax}`
+                      : "Any price"}
                   </TableCell>
                   <TableCell>{formatDate(search.createdAt)}</TableCell>
                   <TableCell>{formatDate(search.lastFetched)}</TableCell>
@@ -217,26 +230,46 @@ const SearchTable = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2 justify-end">
-                      <Button 
-                        size="icon" 
+                      <Button
+                        size="icon"
                         variant="ghost"
-                        onClick={() => window.open(search.searchUrl, '_blank')}
+                        onClick={() => window.open(search.searchUrl, "_blank")}
                         title="Open search in new tab"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
                           <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                           <polyline points="15 3 21 3 21 9"></polyline>
                           <line x1="10" y1="14" x2="21" y2="3"></line>
                         </svg>
                       </Button>
-                      <Button 
-                        size="icon" 
+                      <Button
+                        size="icon"
                         variant="ghost"
                         onClick={() => handleRemoveSearch(search.searchUrl)}
                         title="Remove search"
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
                           <path d="M3 6h18"></path>
                           <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
                           <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
