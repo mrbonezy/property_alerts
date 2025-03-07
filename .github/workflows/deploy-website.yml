@@ -27,8 +27,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "18"
-          cache: "pnpm"
-          cache-dependency-path: "website/pnpm-lock.yaml"
+          # cache: "pnpm"
+          # cache-dependency-path: "website/pnpm-lock.yaml"
 
       - name: Install dependencies
         run: cd website && pnpm install --frozen-lockfile
