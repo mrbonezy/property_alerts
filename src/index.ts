@@ -98,7 +98,7 @@ async function main() {
             console.log("New listings details:");
             newListings.forEach((listing) => {
               console.log(
-                `- ${listing.url} (${listing.currency}${listing.price}) - Rating: ${listing.rating} (${listing.reviewCount} reviews)`
+                `- ${listing.url} (${listing.price})`
               );
             });
 

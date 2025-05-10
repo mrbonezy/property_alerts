@@ -52,80 +52,90 @@ export class AirbnbScraper {
       console.log("Attempting to extract data...");
 
       // Extract the JSON data from the script tag
-      const listings = await page.evaluate(() => {
-        console.log("Inside page context...");
-
-        // Try multiple selectors
-        const selectors = [
-          "#data-deferred-state-0",
-          "#data-deferred-state",
-          'script[type="application/json"]',
-        ];
-        let scriptContent = null;
-
-        for (const selector of selectors) {
-          const element = document.querySelector(selector);
-          if (element?.textContent) {
-            console.log("Found data in selector:", selector);
-            scriptContent = element.textContent;
-            break;
-          }
-        }
-
-        if (!scriptContent) {
-          console.log("No script content found in any selector");
-          return [];
-        }
-
+      const res = await page.evaluate(() => {
+        const logs: string[] = [];
         try {
-          const data = JSON.parse(scriptContent);
+          logs.push("Inside page context...");
 
-          // Try multiple paths to find the listings data
-          const paths = [
-            data?.niobeMinimalClientData?.[1]?.data?.presentation?.staysSearch
-              ?.results?.searchResults,
-            data?.niobeMinimalClientData?.[0]?.[1]?.data?.presentation
-              ?.staysSearch?.results?.searchResults,
-            data?.niobeMinimalClientData?.[0]?.[1]?.data?.presentation
-              ?.staySearch?.results?.searchResults,
+          document.querySelectorAll("h2").forEach((h) => {
+            // @ts-ignore
+            if (/similar dates/i.test(h.textContent.trim())) {
+              const section = h.closest('[role="group"]');
+              if (section) section.remove();
+            }
+          });
+
+          const cards = [
+            ...document.querySelectorAll('div[aria-labelledby^="title_"]'),
           ];
 
-          const stayResults = paths.find((path) => Array.isArray(path)) || [];
-          console.log(`Found ${stayResults.length} results in data`);
+          logs.push(`Found ${cards.length} cards`);
 
-          return stayResults.map((result: any) => {
-            const priceData =
-              result.structuredDisplayPrice?.primaryLine ||
-              result.pricingQuote?.structuredStayDisplayPrice?.primaryLine;
+          const objs = cards
+            .map((card) => {
+              // @ts-ignore
+              const href = card.querySelector('a[href*="/rooms/"]')?.href;
+              const id = href?.match(/\/rooms\/(\d+)/)?.[1];
+              const title = card
+                .querySelector('[data-testid="listing-card-title"]')
+                // @ts-ignore
+                ?.innerText.trim();
+              const subtitles = [
+                ...card.querySelectorAll(
+                  '[data-testid="listing-card-subtitle"]'
+                ),
+              ]
+                // @ts-ignore
+                .map((el) => el.innerText.trim())
+                .filter(Boolean)
+                .join(" | ");
 
-            // Extract price and currency
-            const priceText = priceData?.price || "";
-            const priceMatch = priceText.match(/([£$€])(\d+)/);
-            const price = priceMatch ? parseInt(priceMatch[2], 10) : 0;
-            const currency = priceMatch ? priceMatch[1] : "";
+              // @ts-ignore
+              const price =
+                card
+                  .querySelector('[data-testid="price-availability-row"]')
+                  // @ts-ignore
+                  ?.innerText.trim()
+                  .match(/^([£$€][\d,]+)/)?.[1] ?? "N/A";
 
-            // Extract rating and review count
-            const ratingText = result.avgRatingLocalized || "";
-            const ratingMatch = ratingText.match(/(\d+\.?\d*)\s*\((\d+)\)/);
-            const rating = ratingMatch ? parseFloat(ratingMatch[1]) : 0;
-            const reviewCount = ratingMatch ? parseInt(ratingMatch[2], 10) : 0;
+              // return { id, title, subtitle: subtitles, price };
 
-            return {
-              id: String(result.listing.id),
-              url: `/rooms/${result.listing.id}`,
-              name: result.listing.name || "",
-              title: result.listing.title || "",
-              price,
-              currency,
-              rating,
-              reviewCount,
-            };
-          });
-        } catch (error) {
-          console.error("Error parsing Airbnb data:", error);
-          return [];
+              return {
+                id: String(id),
+                url: `/rooms/${id}`,
+                name: subtitles || "SCRAPE_FAIL_NAME",
+                title: title || "SCRAPE_FAIL_TITLE",
+                price: price,
+                // currency,
+                // rating,
+                // reviewCount,
+              };
+            })
+            
+
+          return {
+            listings: objs,
+            error: null,
+            logs,
+          };
+        } catch (e) {
+          return {
+            listings: [],
+            error: String(e),
+            logs,
+          };
         }
       });
+
+      for (const log of res.logs) {
+        console.log(log);
+      }
+
+      if (res.error) {
+        throw new Error(res.error);
+      }
+
+      const listings = res.listings;
 
       console.log(`Found ${listings.length} listings`);
 

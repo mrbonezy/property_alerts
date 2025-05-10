@@ -132,15 +132,15 @@ export class TelegramNotifier {
           // Add property details
           message += `<b>${listing.name || ""}</b>\n`;
           message += `<b>${listing.title || "Property Listing"}</b>\n`;
-          message += `💰 ${listing.currency}${listing.price}`;
+          message += `💰 ${listing.price}`;
 
-          if (listing.rating > 0) {
-            message += ` - ⭐${listing.rating.toFixed(1)} (${
-              listing.reviewCount
-            } ${listing.reviewCount === 1 ? "review" : "reviews"})`;
-          } else {
-            message += ` - No ratings yet`;
-          }
+          // if (listing.rating > 0) {
+          //   message += ` - ⭐${listing.rating.toFixed(1)} (${
+          //     listing.reviewCount
+          //   } ${listing.reviewCount === 1 ? "review" : "reviews"})`;
+          // } else {
+          //   message += ` - No ratings yet`;
+          // }
 
           message += `\n\n🔗 <a href="${listing.url}">View listing</a>\n`;
           message += `🔍 <a href="${alert.searchUrl}">View all results</a>\n\n`;
@@ -209,15 +209,15 @@ export class TelegramNotifier {
         listings.forEach((listing, index) => {
           message += `  ${index + 1}. <b>${listing.name || ""}</b>\n`;
           message += `  <b>${listing.title || "Property Listing"}</b>\n`;
-          message += `  💰 ${listing.currency}${listing.price}`;
+          message += `  💰 ${listing.price}`;
 
-          if (listing.rating > 0) {
-            message += ` • ⭐${listing.rating.toFixed(1)} (${
-              listing.reviewCount
-            })`;
-          } else {
-            message += ` • No ratings`;
-          }
+          // if (listing.rating > 0) {
+          //   message += ` • ⭐${listing.rating.toFixed(1)} (${
+          //     listing.reviewCount
+          //   })`;
+          // } else {
+          //   message += ` • No ratings`;
+          // }
 
           message += `\n  🔗 <a href="${listing.url}">View listing</a>\n\n`;
         });
@@ -264,15 +264,15 @@ export class TelegramNotifier {
           // Add property details
           message += `<b>${listing.name || ""}</b>\n`;
           message += `<b>${listing.title || "Property Listing"}</b>\n`;
-          message += `💰 ${listing.currency}${listing.price}`;
+          message += `💰 ${listing.price}`;
 
-          if (listing.rating > 0) {
-            message += ` - ⭐${listing.rating.toFixed(1)} (${
-              listing.reviewCount
-            } ${listing.reviewCount === 1 ? "review" : "reviews"})`;
-          } else {
-            message += ` - No ratings yet`;
-          }
+          // if (listing.rating > 0) {
+          //   message += ` - ⭐${listing.rating.toFixed(1)} (${
+          //     listing.reviewCount
+          //   } ${listing.reviewCount === 1 ? "review" : "reviews"})`;
+          // } else {
+          //   message += ` - No ratings yet`;
+          // }
 
           message += `\n\n🔗 <a href="${listing.url}">View listing</a>\n`;
           message += `🔍 <a href="${alert.searchUrl}">View all results</a>\n\n`;

@@ -2,9 +2,9 @@ export interface AirbnbListing {
   id: string;
   url: string;
   price: number;
-  currency: string;
-  rating: number;
-  reviewCount: number;
+  // currency: string;
+  // rating: number;
+  // reviewCount: number;
   name: string;
   title: string;
 }
